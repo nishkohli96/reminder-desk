@@ -1,0 +1,17 @@
+{
+  "description": "Starts Reminder Desk setup in the first session after the plugin is installed",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/first-run.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

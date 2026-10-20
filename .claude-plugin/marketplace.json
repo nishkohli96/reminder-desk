@@ -1,0 +1,15 @@
+{
+  "name": "reminder-desk",
+  "description": "Daily to-do reminders with push notifications, built on Claude. A personal AI assistant that keeps nudging you until each task is done.",
+  "owner": {
+    "name": "Nishant Kohli",
+    "url": "https://github.com/nishkohli96"
+  },
+  "plugins": [
+    {
+      "name": "reminder-desk",
+      "source": "./plugins/reminder-desk",
+      "description": "Private Reminder Desk page plus start-of-day, task-time, follow-up and end-of-day push reminders"
+    }
+  ]
+}
