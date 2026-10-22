@@ -26,6 +26,15 @@ VERSION="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$M
 TAG="v$VERSION"
 ZIP="$DIST/reminder-desk-plugin-$TAG.zip"
 
+# Keep the page's version label (id="appVersion") in step with plugin.json
+PAGE="$PLUGIN_DIR/skills/setup/assets/reminder-desk.html"
+grep -q 'id="appVersion"' "$PAGE" || die "No appVersion label in $PAGE"
+if ! grep -q "id=\"appVersion\"[^>]*>$TAG<" "$PAGE"; then
+  sed -i.bak "s|\(id=\"appVersion\"[^>]*>\)v[^<]*<|\1$TAG<|" "$PAGE" && rm -f "$PAGE.bak"
+  echo "✔ Page version label set to $TAG"
+  $PUBLISH && die "Commit the updated ${PAGE#$ROOT/}, then run --publish again"
+fi
+
 # Checks before packaging
 if command -v claude >/dev/null; then
   claude plugin validate "$PLUGIN_DIR" >/dev/null || die "claude plugin validate failed for $PLUGIN_DIR"

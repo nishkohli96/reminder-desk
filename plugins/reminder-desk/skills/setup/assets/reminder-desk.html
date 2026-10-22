@@ -61,6 +61,7 @@ body {
 .wrap { max-width: 720px; margin: 0 auto; display: grid; gap: 24px; }
 header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
 h1 { font-family: var(--f-display); font-weight: 800; font-size: 30px; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+.app-ver { font-family: var(--f-mono); font-weight: 500; font-size: 13px; letter-spacing: 0; color: var(--muted); margin-left: 8px; vertical-align: baseline; white-space: nowrap; }
 .now { font-family: var(--f-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .lede { margin: 6px 0 0; color: var(--muted); max-width: 62ch; font-size: 14px; }
 
@@ -162,7 +163,7 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
 <div class="wrap">
   <header>
     <div>
-      <h1>Reminder Desk</h1>
+      <h1>Reminder Desk<span class="app-ver" id="appVersion" title="Reminder Desk version">v1.0.1</span></h1>
       <p class="lede">Add a task with a date and time. Until you tick it off, you get a start-of-day rundown, a push at the task's time, a follow-up a few hours later, and an end-of-day nudge.</p>
     </div>
     <div class="head-right">

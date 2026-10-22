@@ -115,6 +115,21 @@ Once set up, you can manage tasks without opening the page:
 
 ## Update
 
+### Why updating takes two steps
+
+Reminder Desk has two parts, and they update separately:
+
+| Part | Where it lives | How it updates |
+|---|---|---|
+| **Plugin files**: the skills, the page template and the reminder instructions | Installed with the plugin | A plugin update: auto-update or the `/plugin` commands in Claude Code, Customize > Plugins in the Claude app |
+| **Your setup**: your Reminder Desk page and your three scheduled tasks | Your Claude account | Saying "Update Reminder Desk" |
+
+Setup copies the page template and the reminder instructions onto your account. A plugin update replaces the plugin files but never touches those copies, so your page and reminders keep running the version they were set up with. They keep working, but without the fixes and features that live in the page or the reminders, until you run "Update Reminder Desk". Changes that only affect the skills, such as how Claude adds a task from chat, apply as soon as the plugin updates.
+
+Keeping the two apart is deliberate: nothing on your account changes behind your back, and the update step can check that your tasks are untouched before it reports success.
+
+### Updating
+
 Say **"Update Reminder Desk"**, or run `/reminder-desk:update` in Claude Code or Cowork. It:
 
 1. Compares your installed version with the latest release.
@@ -124,6 +139,13 @@ Say **"Update Reminder Desk"**, or run `/reminder-desk:update` in Claude Code or
 Your tasks are never rewritten or deleted, and settings are only filled in where something new was added. Claude checks that your task count is unchanged before it reports success.
 
 To get plugin updates automatically in Claude Code: `/plugin` > Marketplaces > reminder-desk > **Enable auto-update**. After an automatic plugin update, still run "Update Reminder Desk" once so your page and reminders pick up the new version.
+
+### Upgrading manually
+
+- **Claude Code:** `/plugin marketplace update reminder-desk`, then `/plugin update reminder-desk@reminder-desk`. Run `/reload-plugins`, then say "Update Reminder Desk".
+- **Claude app:** update Reminder Desk from Customize > Plugins, or upload the zip from the [latest release](https://github.com/nishkohli96/reminder-desk/releases/latest). Then say "Update Reminder Desk".
+
+Your tasks, settings and reminders are not affected. See [Changelog.md](Changelog.md) for what changed in each version.
 
 ## Uninstall
 
@@ -144,10 +166,16 @@ In the Claude app, remove it from Customize > Plugins.
 
 Uninstall Reminder Desk first, then the plugin: the plugin can't clean up your scheduled tasks after it's gone.
 
+## Contributing
+
+Bug reports and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to test changes locally and the rules that keep users' tasks safe, and [Changelog.md](Changelog.md) for what changed in each version.
+
 ## What's inside
 
 ```
 reminder-desk/                          # GitHub repo = plugin marketplace
+├── .github/
+│   └── FUNDING.yml                     # Sponsor button: GitHub Sponsors, Buy Me a Coffee, PayPal
 ├── .claude-plugin/
 │   └── marketplace.json                # lists the reminder-desk plugin
 ├── plugins/
@@ -172,6 +200,10 @@ reminder-desk/                          # GitHub repo = plugin marketplace
 │                   ├── morning-prompt.md    # start-of-day scheduled task
 │                   ├── hourly-prompt.md     # task-check scheduled task
 │                   └── eod-prompt.md        # end-of-day scheduled task
+├── scripts/
+│   └── release.sh                      # builds the release zip, publishes a GitHub Release
 ├── README.md                           # this file
+├── CONTRIBUTING.md
+├── Changelog.md
 └── LICENSE
 ```
