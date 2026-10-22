@@ -2,13 +2,10 @@
 
 All notable changes to Reminder Desk are listed here. Versions follow `version` in `plugins/reminder-desk/.claude-plugin/plugin.json`.
 
-## Unreleased
-
-- Nothing yet.
 
 ## [1.0.1](https://github.com/nishkohli96/reminder-desk/releases/tag/v1.0.1)
 
-**Released - 21 October, 2026**
+**Released - 22 October, 2026**
 
 ### Added
 - The Reminder Desk page shows its version next to the title, in a smaller font (e.g. `v1.0.1`).

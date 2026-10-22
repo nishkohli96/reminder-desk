@@ -56,7 +56,7 @@ scripts/release.sh                        # builds the release zip and publishes
 
 ## Releasing (maintainer)
 
-1. Raise `version` in `plugins/reminder-desk/.claude-plugin/plugin.json`. Without a new version, existing users don't receive the update.
+1. Raise `version` in `plugins/reminder-desk/.claude-plugin/plugin.json` and the `v<version>` label (`id="appVersion"`) in `plugins/reminder-desk/skills/setup/assets/reminder-desk.html`; `release.sh` stops if they differ. Without a new version, existing users don't receive the update.
 2. Move the **Unreleased** entries in `Changelog.md` under the new version and date.
 3. Commit and push, then run:
    ```bash

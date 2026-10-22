@@ -16,7 +16,7 @@ Gives the user a private task page and three scheduled tasks that push reminders
 
 **Automatic first-run setup.** When installed as a plugin, a SessionStart hook (`hooks/hooks.json` → `scripts/first-run.sh`) tells Claude to run the setup flow below in the first session after install, once per machine. Hooks run in Claude Code and Cowork; chat on claude.ai ignores them, so there the user starts setup by saying "Set up my to-do reminders".
 
-**Where setup works.** Setup needs the Artifact and ArtifactData tools and the scheduled-task tools (create_trigger). If they aren't available in this session (for example the Claude Code terminal), don't attempt setup and don't guess whether a Reminder Desk page or scheduled tasks already exist, because this session can't see them. Tell the user in one line to open the Claude app and say "Set up my to-do reminders"; setup there checks for an existing page and reminders first.
+**Where setup works.** Setup needs the Artifact and ArtifactData tools and the scheduled-task tools (create_trigger). Some may be deferred: load them with ToolSearch first, and treat them as unavailable only if ToolSearch can't load them. If they aren't available in this session (for example the Claude Code terminal), don't attempt setup and don't guess whether a Reminder Desk page or scheduled tasks already exist, because this session can't see them. Tell the user in one line to open the Claude app and say "Set up my to-do reminders"; setup there checks for an existing page and reminders first.
 
 **Updates.** The `update` skill (`/reminder-desk:update`) checks for a newer version, updates the plugin, and upgrades the user's page and scheduled tasks in place without touching their tasks. Use it when the user asks to update Reminder Desk.
 
