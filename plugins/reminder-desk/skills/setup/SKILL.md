@@ -29,7 +29,7 @@ Everything runs on the user's own account. Their tasks live in their private sub
 
 ## Data model (ArtifactData, on the page's url; `me` = the account calling)
 
-- **Settings:** collection `data/users/me`, doc_id `settings`. Fields: `{followupHours: 1-12, morningTime: "HH:MM", nightTime: "HH:MM", tz: IANA zone, morningTaskId: "trig_...", nightTaskId: "trig_...", hourlyTaskId: "trig_...", hourlyCron: the cron last applied to the hourly task, theme: "light"|"dark"|"system", clock24: boolean (default false), appVersion: the plugin version the account was last set up or updated with}`.
+- **Settings:** collection `data/users/me`, doc_id `settings`. Fields: `{followupHours: 1-12, morningTime: "HH:MM", nightTime: "HH:MM", tz: IANA zone, morningTaskId: "trig_...", nightTaskId: "trig_...", hourlyTaskId: "trig_...", hourlyCron: the cron last applied to the hourly task, theme: "light"|"dark"|"system", clock24: boolean (default false), autoDelete: boolean (default false; the page deletes a task a day after it was ticked off), appVersion: the plugin version the account was last set up or updated with}`.
 - **Tasks:** collection `data/users/me/home/tasks`, one doc per task. Fields:
   - `title`
   - `dueDate`: "YYYY-MM-DD"
@@ -73,6 +73,9 @@ Run this when the user asks to set it up. Check first whether they already have 
     - which approval setting each of the three scheduled tasks got
     - that changing reminder times on the page asks once to allow Claude Code Remote
     - that reminders fire at each task's time and its follow-up, and drop off the schedule once the task is ticked off
+    - in one line: "To find this chat again, rename it to Reminder Desk and star it from the chat's menu." Claude can't rename or pin chats itself.
+
+7. **Offer to pin the page** (only when this setup published a new page). Ask once, with AskUserQuestion if available: "Pin Reminder Desk to your sidebar so it's one tap away?" On yes, call Artifact `action: "pin"` with the page URL. On no, or no answer, skip it and don't ask again. Never pin without a yes, and never unpin.
 
 ## Keeping the hourly schedule trimmed
 

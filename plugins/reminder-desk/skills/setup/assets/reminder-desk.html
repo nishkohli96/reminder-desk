@@ -66,7 +66,7 @@ h1 { font-family: var(--f-display); font-weight: 800; font-size: 30px; letter-sp
 .lede { margin: 6px 0 0; color: var(--muted); max-width: 62ch; font-size: 14px; }
 
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
-form.add { display: grid; grid-template-columns: 1fr auto auto auto; gap: 10px; align-items: end; }
+form.add { display: grid; grid-template-columns: minmax(0, 1fr) auto 10rem auto; gap: 10px; align-items: end; }
 .field { display: grid; gap: 4px; min-width: 0; }
 .field label, .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
 input[type=text], input[type=date], input[type=time], input[type=number] {
@@ -92,6 +92,16 @@ button { font: inherit; cursor: pointer; border-radius: 8px; }
 .btn-link:hover { color: var(--ink); }
 .btn-danger { color: var(--danger); }
 .hint { grid-column: 1 / -1; font-size: 12.5px; color: var(--muted); margin: 0; }
+form.add .quick { grid-column: 1 / -1; width: 0; min-width: 100%; padding-bottom: 12px; border-bottom: 1px dashed var(--line); margin-bottom: 2px; }
+.quick-row { display: flex; gap: 8px; }
+.quick-row .btn-ghost { padding: 9px 14px; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.quick-row .btn-ghost:disabled { opacity: .45; cursor: default; }
+.quick-preview { margin: 0; font-size: 12.5px; color: var(--muted); }
+.quick-preview b { color: var(--ink); font-weight: 600; }
+.past-note { color: var(--warn); }
+.past-note .btn-link { color: var(--accent); font-weight: 600; padding: 0 2px; text-decoration: underline; }
+.ptr { position: fixed; top: 8px; left: 50%; transform: translate(-50%, -60px); z-index: 20; padding: 6px 14px; border-radius: 999px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); font-size: 13px; box-shadow: 0 4px 14px rgba(0,0,0,.12); opacity: 0; pointer-events: none; transition: opacity .15s; }
+.ptr.on { opacity: 1; }
 .form-msg { grid-column: 1 / -1; font-size: 13px; margin: 0; color: var(--danger); }
 
 details.settings { padding: 0; }
@@ -157,6 +167,10 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
   li.task { grid-template-columns: auto 1fr; }
   .actions { grid-column: 2; justify-content: flex-start; }
   .confirm { justify-content: flex-start; }
+  /* Time list: open from the field's right edge and narrow the columns so hour, minute and AM/PM fit without sideways scrolling */
+  .tp-pop { left: auto; right: 0; max-width: calc(100vw - 32px); }
+  .tp-col { width: 64px; }
+  .tp-col.tp-ampm { width: 56px; }
 }
 </style>
 
@@ -177,6 +191,14 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
   </header>
 
   <form class="add panel" id="addForm" novalidate>
+    <div class="field quick">
+      <label for="q-text">Quick add</label>
+      <div class="quick-row">
+        <input type="text" id="q-text" maxlength="200" autocomplete="off" enterkeyhint="done" placeholder="Pay rent tomorrow at 9am">
+        <button type="button" class="btn-ghost" id="q-fill" disabled>Fill in</button>
+      </div>
+      <p class="quick-preview" id="q-preview">Type or dictate a sentence with a date and time, then check the fields below.</p>
+    </div>
     <div class="field f-title">
       <label for="t-title">Task</label>
       <input type="text" id="t-title" maxlength="140" placeholder="Pay Credit Card EMI" autocomplete="off" required>
@@ -191,6 +213,7 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
     </div>
     <button class="btn-primary" type="submit" id="addBtn">Add task</button>
     <p class="form-msg" id="formMsg" hidden></p>
+    <p class="hint past-note" id="pastNote" hidden><span id="pastText"></span> <button type="button" class="btn-link" id="pastFix"></button></p>
     <p class="hint" id="editHint" hidden>Editing. Saving resets this task's reminders. <button type="button" class="btn-link" id="cancelEdit">Cancel edit</button></p>
   </form>
 
@@ -217,6 +240,11 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
         <input type="checkbox" id="p-clock24">
         <span>24-hour format</span>
         <span class="hint-inline">Off shows 2:00 PM; on shows 14:00. Applies right away.</span>
+      </label>
+      <label class="clock-row" for="p-autodel">
+        <input type="checkbox" id="p-autodel">
+        <span>Auto Delete Reminders</span>
+        <span class="hint-inline">Deletes a task a day after you tick it off, including tasks already done for over a day. Applies right away.</span>
       </label>
       <button class="btn-primary" type="submit" id="prefsBtn">Save settings</button>
       <p class="prefs-msg" id="prefsMsg">Start of day: one push listing today's and carried-over tasks. Follow-up: 1 to 12 hours after each task's time. End of day: one push listing every task still open.</p>
@@ -353,6 +381,7 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
   }
 
   var form = $("addForm"), titleIn = $("t-title"), dateIn = $("t-date"), timeIn = timePicker($("t-time"));
+  var pastNote = $("pastNote"), pastText = $("pastText"), pastFix = $("pastFix");
   var addBtn = $("addBtn"), formMsg = $("formMsg"), editHint = $("editHint"), statusEl = $("status"), sectionsEl = $("sections");
   var prefsForm = $("prefsForm"), hoursIn = $("p-hours"), nightIn = timePicker($("p-night")), morningIn = timePicker($("p-morning")), prefsBtn = $("prefsBtn"), prefsMsg = $("prefsMsg");
 
@@ -410,8 +439,120 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
     var p = istParts(Date.now() + HOUR);
     dateIn.value = p.date;
     timeIn.value = p.time.slice(0, 2) + ":00";
+    checkPast();
   }
-  function tickNow() { $("now").textContent = tzAbbr(TZ) + " " + fmtDate(Date.now()) + " · " + fmtTime(Date.now()); }
+  // A time that has already passed today is allowed; say when the first reminder will actually come.
+  function nextHour() { var p = istParts(Date.now() + HOUR); return { date: p.date, time: p.time.slice(0, 2) + ":00" }; }
+  function checkPast() {
+    if (!settings) return;
+    var now = Date.now(), t = timeIn.value, today = istParts(now).date;
+    var ms = t && dateIn.value === today ? toMs(today, t) : NaN;
+    if (!(ms < now)) { pastNote.hidden = true; return; }
+    var at = fmtTime(ms), f = ms + settings.followupHours * HOUR;
+    var ntz = settings.tz || TZ, night = toMs(partsIn(now, ntz).date, settings.nightTime, ntz);
+    pastText.textContent = at + " has already passed today. " + (f > now
+      ? "Your first reminder comes with the " + fmtTime(f) + " follow-up, then daily at " + at + "."
+      : night > now ? "You'll get it in tonight's " + fmtTime(night, ntz) + " nudge, then daily at " + at + " from tomorrow."
+      : "Reminders start tomorrow at " + at + ".");
+    var n = nextHour();
+    pastFix.textContent = "Remind me at " + fmtTime(toMs(n.date, n.time)) + " instead";
+    pastNote.hidden = false;
+  }
+  pastFix.addEventListener("click", function () { var n = nextHour(); dateIn.value = n.date; timeIn.value = n.time; checkPast(); });
+  dateIn.addEventListener("input", checkPast); dateIn.addEventListener("change", checkPast);
+  ["click", "input", "focusout", "keyup"].forEach(function (e) { timeIn.el.addEventListener(e, function () { setTimeout(checkPast, 0); }); });
+  // ---- Quick add: one sentence ("Book flight tickets to Goa on 30 Oct at 4pm") -> title, date, time. Runs in the page. ----
+  var MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+  var DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+  var MON_RE = "(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)";
+  var DAY_RE = "(sun(?:day)?|mon(?:day)?|tue(?:s(?:day)?)?|wed(?:nesday)?|thu(?:r(?:s(?:day)?)?)?|fri(?:day)?|sat(?:urday)?)";
+  function ymd(y, m, d) { return y + "-" + pad2(m) + "-" + pad2(d); }
+  function addDays(date, n) { var d = date.split("-"); var t = new Date(Date.UTC(+d[0], +d[1] - 1, +d[2] + n)); return ymd(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate()); }
+  function validDay(y, m, d) { var t = new Date(Date.UTC(y, m - 1, d)); return t.getUTCMonth() === m - 1 && t.getUTCDate() === d; }
+  function parseQuick(text) {
+    var today = istParts(Date.now()).date, ty = +today.slice(0, 4);
+    var s = " " + text.replace(/[“”‘’]/g, '"') + " ", date = null, time = null, quoted = null;
+    var q = s.match(/"([^"]+)"/); if (q) { quoted = q[1].trim(); s = s.replace(q[0], " "); }
+    function cut(re, fn) { var m = s.match(re); if (!m) return false; var r = fn(m); if (r === false) return false; s = s.slice(0, m.index) + " " + s.slice(m.index + m[0].length); return true; }
+    function dayMonth(d, mo, y) {
+      d = +d; var m = MONTHS.indexOf(mo.slice(0, 3).toLowerCase()) + 1, yr = y ? +y : ty;
+      if (!validDay(yr, m, d)) return false;
+      var v = ymd(yr, m, d); if (!y && v < today) v = ymd(yr + 1, m, d); date = v;
+    }
+    // time first, so "4" in "at 4pm" isn't read as a date
+    cut(/\s(?:at|@|by)?\s*(\d{1,2})(?:[:.](\d{2}))?\s*(a\.?m\.?|p\.?m\.?)(?=[\s,.!?]|$)/i, function (m) {
+      var h = +m[1], mi = m[2] ? +m[2] : 0; if (h < 1 || h > 12 || mi > 59) return false;
+      h = h % 12 + (/^p/i.test(m[3]) ? 12 : 0); time = pad2(h) + ":" + pad2(mi);
+    }) ||
+    cut(/\s(?:at|@|by)?\s*([01]?\d|2[0-3])[:.](\d{2})\s*(?:h|hrs|hours)?(?=[\s,.!?]|$)/i, function (m) { if (+m[2] > 59) return false; time = pad2(+m[1]) + ":" + m[2]; }) ||
+    cut(/\s(?:at\s+)?(noon|midday)(?=[\s,.!?]|$)/i, function () { time = "12:00"; }) ||
+    cut(/\s(?:at\s+)?midnight(?=[\s,.!?]|$)/i, function () { time = "00:00"; }) ||
+    cut(/\s(?:at|@)\s+(\d{1,2})(?=[\s,.!?]|$)(?:\s*o'?clock)?/i, function (m) { var h = +m[1]; if (h > 23) return false; time = pad2(h) + ":00"; });
+    var rel = /\sin\s+(\d{1,3}|an?|one|two|three)\s*(min(?:ute)?s?|h(?:ou)?rs?|hours?)(?=[\s,.!?]|$)/i;
+    var mRel = s.match(rel);
+    if (mRel && !time) cut(rel, function (m) {
+      var n = { a: 1, an: 1, one: 1, two: 2, three: 3 }[m[1].toLowerCase()] || +m[1];
+      var p2 = istParts(Date.now() + n * (/^m/i.test(m[2]) ? 60000 : HOUR)); date = p2.date; time = p2.time;
+    });
+    if (!date) cut(/\s(?:on\s+)?(\d{4})-(\d{2})-(\d{2})(?=[\s,.!?]|$)/, function (m) { if (!validDay(+m[1], +m[2], +m[3])) return false; date = m[1] + "-" + m[2] + "-" + m[3]; }) ||
+    cut(/\s(?:on\s+)?(?:the\s+)?(day after tomorrow|tomorrow|tmrw|tmr|today|tonight)(?=[\s,.!?]|$)/i, function (m) {
+      var w = m[1].toLowerCase(); date = addDays(today, w === "day after tomorrow" ? 2 : /^t(o|m)m|^tmr/.test(w) && w !== "today" && w !== "tonight" ? 1 : 0);
+      if (w === "tonight" && !time) time = "20:00";
+    }) ||
+    cut(new RegExp("\\s(?:on\\s+)?(?:the\\s+)?(\\d{1,2})(?:st|nd|rd|th)?\\s*(?:of\\s+)?" + MON_RE + ",?(?:\\s+(\\d{4}))?(?=[\\s,.!?]|$)", "i"), function (m) { return dayMonth(m[1], m[2], m[3]); }) ||
+    cut(new RegExp("\\s(?:on\\s+)?" + MON_RE + "\\s+(\\d{1,2})(?:st|nd|rd|th)?,?(?:\\s+(\\d{4}))?(?=[\\s,.!?]|$)", "i"), function (m) { return dayMonth(m[2], m[1], m[3]); }) ||
+    cut(/\s(?:on\s+)?(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?(?=[\s,!?]|$)/, function (m) {
+      var d = +m[1], mo = +m[2], y = m[3] ? (m[3].length === 2 ? 2000 + +m[3] : +m[3]) : ty;
+      if (!validDay(y, mo, d)) return false;
+      var v = ymd(y, mo, d); if (!m[3] && v < today) v = ymd(y + 1, mo, d); date = v;
+    }) ||
+    cut(new RegExp("\\s(?:on\\s+)?(this\\s+|next\\s+)?" + DAY_RE + "(?=[\\s,.!?]|$)", "i"), function (m) {
+      var want = DAYS.indexOf(m[2].slice(0, 3).toLowerCase()), d = today.split("-");
+      var now = new Date(Date.UTC(+d[0], +d[1] - 1, +d[2])).getUTCDay(), diff = (want - now + 7) % 7;
+      if (m[1] && /next/i.test(m[1]) && diff === 0) diff = 7;
+      date = addDays(today, diff);
+    }) ||
+    cut(/\s(?:on\s+)?(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)(?=[\s,.!?]|$)/i, function (m) {
+      var d = +m[1], t = today.split("-"), y = +t[0], mo = +t[1];
+      if (ymd(y, mo, d) < today || !validDay(y, mo, d)) { mo++; if (mo > 12) { mo = 1; y++; } }
+      if (!validDay(y, mo, d)) return false; date = ymd(y, mo, d);
+    });
+    if (time && !date) date = toMs(today, time) > Date.now() ? today : addDays(today, 1); // "at 7am" = the next 7am
+    var title = quoted || s;
+    if (!quoted) {
+      title = title.replace(/^\s*(?:please\s+)?(?:(?:add|set|create|make|new)\s+(?:a\s+)?(?:re+mi+nders?|tasks?|to-?dos?)\s*(?:to|for|about)?|re+mi+nd\s+me\s+(?:to|about|of)?|re+mi+nders?\s*(?:to|for|:)?)\s*/i, "");
+      title = title.replace(/\s+(?:on|at|by|for|in|the|of|from|and)(?=\s*$|\s*[,.!?]\s*$)/ig, "").replace(/\s{2,}/g, " ");
+      title = title.replace(/^\s*(?:for|to|about|on|at)\s+/i, "");
+      for (var k = 0; k < 3; k++) title = title.replace(/\s+(?:on|at|by|for|in|the)\s*$/i, "").replace(/^\s*(?:for|to|about)\s+/i, "");
+    }
+    title = title.replace(/\s+/g, " ").replace(/^[\s,.:;-]+|[\s,.:;-]+$/g, "");
+    if (title) title = title.charAt(0).toUpperCase() + title.slice(1);
+    return { title: title, date: date, time: time };
+  }
+  var qText = $("q-text"), qFill = $("q-fill"), qPrev = $("q-preview"), QHINT = qPrev.textContent;
+  function quickPreview() {
+    var v = qText.value.trim();
+    if (!v) { qPrev.textContent = QHINT; qFill.disabled = true; return null; }
+    var r = parseQuick(v);
+    qPrev.textContent = "";
+    var parts = [r.title || "(no title yet)", r.date ? fmtDate(toMs(r.date, "12:00")) : "date: keep " + fmtDate(toMs(dateIn.value || istParts(Date.now()).date, "12:00")), r.time ? fmtTime(toMs("2026-01-15", r.time)) : "time: keep " + (timeIn.value ? fmtTime(toMs("2026-01-15", timeIn.value)) : "default")];
+    qPrev.append("→ ");
+    parts.forEach(function (t, i) { var b = document.createElement(i === 0 || (i === 1 && r.date) || (i === 2 && r.time) ? "b" : "span"); b.textContent = t; qPrev.append(b); if (i < 2) qPrev.append(" · "); });
+    qFill.disabled = !r.title && !r.date && !r.time;
+    return r;
+  }
+  function quickFill() {
+    var r = quickPreview(); if (!r) return;
+    if (r.title) titleIn.value = r.title;
+    if (r.date) dateIn.value = r.date;
+    if (r.time) timeIn.value = r.time;
+    qText.value = ""; quickPreview(); checkPast(); showMsg("");
+    addBtn.focus();
+  }
+  qText.addEventListener("input", quickPreview);
+  qText.addEventListener("keydown", function (ev) { if (ev.key === "Enter") { ev.preventDefault(); quickFill(); } });
+  qFill.addEventListener("click", quickFill);
+  function tickNow() { $("now").textContent = tzAbbr(TZ) + " " + fmtDate(Date.now()) + " · " + fmtTime(Date.now()); checkPast(); }
   Array.prototype.forEach.call(document.querySelectorAll(".tz-abbr"), function (n) { n.textContent = tzAbbr(TZ); });
   $("tzName").textContent = TZ.replace(/_/g, " ");
 
@@ -438,6 +579,34 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
       : ref.set({ followupHours: settings.followupHours, morningTime: settings.morningTime, nightTime: settings.nightTime, clock24: on }))
       .catch(function () {});
   });
+
+  // ---- Auto Delete Reminders: remove a task a day after it was ticked off. Synced in your settings. ----
+  // Runs whenever this page is open (on load, on every change, and once a minute).
+  var DAY = 24 * HOUR;
+  var autoDelBox = $("p-autodel");
+  var autoDeleting = {};
+  autoDelBox.addEventListener("change", function () {
+    var on = autoDelBox.checked;
+    if (settings.autoDelete === on) return;
+    settings.autoDelete = on;
+    if (!db || !uid) return;
+    var ref = settingsDoc();
+    (settingsVersionSeen ? ref.update({ autoDelete: on })
+      : ref.set({ followupHours: settings.followupHours, morningTime: settings.morningTime, nightTime: settings.nightTime, autoDelete: on }))
+      .then(sweepDone)
+      .catch(function () {});
+  });
+  function sweepDone() {
+    if (!db || !uid || !settingsLoaded || !tasksLoaded || !settings.autoDelete) return;
+    var cutoff = Date.now() - DAY;
+    tasks.forEach(function (t) {
+      var d = t.data;
+      if (!d.done || typeof d.doneAt !== "number" || d.doneAt > cutoff || autoDeleting[t.id]) return;
+      autoDeleting[t.id] = true;
+      tasksCol().doc(t.id).delete().catch(function () { delete autoDeleting[t.id]; });
+    });
+  }
+  setInterval(sweepDone, 60000);
 
   // ---- theme (Light / Dark / System). Synced in your settings; cached locally to avoid a flash. ----
   var THEME_KEY = "reminder-desk-theme";
@@ -480,6 +649,7 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
       if (typeof raw.hourlyCron === "string") s.hourlyCron = raw.hourlyCron;
       if (raw.theme === "light" || raw.theme === "dark" || raw.theme === "system") s.theme = raw.theme;
       if (typeof raw.clock24 === "boolean") s.clock24 = raw.clock24;
+      if (typeof raw.autoDelete === "boolean") s.autoDelete = raw.autoDelete;
     }
     return s;
   }
@@ -488,6 +658,7 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
     if (!morningIn.el.contains(document.activeElement)) morningIn.value = settings.morningTime;
     if (document.activeElement !== hoursIn) hoursIn.value = String(settings.followupHours);
     if (!nightIn.el.contains(document.activeElement)) nightIn.value = settings.nightTime;
+    autoDelBox.checked = !!settings.autoDelete;
   }
 
   // ---- render ----
@@ -621,7 +792,7 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
     editingId = t.id;
     var p = istParts(t.data.dueMs);
     titleIn.value = t.data.title; dateIn.value = p.date; timeIn.value = p.time;
-    addBtn.textContent = "Save changes"; editHint.hidden = false; showMsg("");
+    addBtn.textContent = "Save changes"; editHint.hidden = false; showMsg(""); checkPast();
     titleIn.focus();
   }
   function endEdit() {
@@ -710,6 +881,7 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
     if (settings.morningTaskId) body.morningTaskId = settings.morningTaskId;
     if (settings.theme) body.theme = settings.theme;
     if (typeof settings.clock24 === "boolean") body.clock24 = settings.clock24;
+    if (typeof settings.autoDelete === "boolean") body.autoDelete = settings.autoDelete;
     if (settings.hourlyTaskId) body.hourlyTaskId = settings.hourlyTaskId;
     if (settings.hourlyCron) body.hourlyCron = settings.hourlyCron;
     if (h !== settings.followupHours || zoneChanged) syncWanted = true;
@@ -802,24 +974,79 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
     return (user ? user.id() : Promise.resolve(null)).then(function (id) {
       uid = id;
       if (!uid) { statusEl.textContent = "Sign in to Claude to keep your own private task list here."; return; }
-      tasksCol().onSnapshot(function (snap) {
-        tasks = snap.docs.map(function (d) { return { id: d.id, data: d.data() }; });
-        statusEl.hidden = true;
-        tasksLoaded = true;
-        render();
-        maybeSync();
-      }, function () { flagError("Lost the connection to your tasks. Reload the page."); });
-      settingsDoc().onSnapshot(function (snap) {
-        settingsVersionSeen = snap.exists;
-        settings = cleanSettings(snap.exists ? snap.data() : null);
-        settingsLoaded = true;
-        if (settings.theme) { applyTheme(settings.theme); try { localStorage.setItem(THEME_KEY, settings.theme); } catch (e) {} }
-        if (typeof settings.clock24 === "boolean" && settings.clock24 !== clock24) setClock24(settings.clock24);
-        render();
-        maybeSync();
-      }, function () {});
+      subscribe();
     });
   });
+
+  // Live updates: one listener per path. A page left in the background (an installed home-screen app) can come back
+  // with a dead listener, so on return, and on pull-to-refresh, read fresh data and subscribe again.
+  var unsubs = [];
+  function onTasks(snap) {
+    tasks = snap.docs.map(function (d) { return { id: d.id, data: d.data() }; });
+    statusEl.hidden = true;
+    tasksLoaded = true;
+    render();
+    maybeSync();
+    sweepDone();
+  }
+  function subscribe() {
+    unsubs.forEach(function (u) { try { u(); } catch (e) {} });
+    unsubs = [
+      tasksCol().onSnapshot(onTasks, function () { flagError("Lost the connection to your tasks. Pull down to refresh."); }),
+      settingsDoc().onSnapshot(onSettings, function () {})
+    ];
+  }
+  var refreshing = null;
+  function refresh() {
+    if (!db || !uid) return Promise.resolve();
+    if (refreshing) return refreshing;
+    refreshing = Promise.all([tasksCol().get(), settingsDoc().get()]).then(function (r) {
+      onSettings(r[1]); onTasks(r[0]); subscribe();
+    }).catch(function () {}).then(function () { refreshing = null; });
+    return refreshing;
+  }
+  var hiddenAt = 0;
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) hiddenAt = Date.now();
+    else if (Date.now() - hiddenAt > 3000) refresh();
+  });
+  window.addEventListener("pageshow", function (ev) { if (ev.persisted) refresh(); });
+  window.addEventListener("online", refresh);
+
+  // Pull to refresh (installed apps have no browser pull-to-refresh).
+  var ptr = document.createElement("div"); ptr.className = "ptr"; ptr.setAttribute("aria-live", "polite"); document.body.appendChild(ptr);
+  var startY = null, pull = 0, PULL = 70;
+  function atTop() { return (document.scrollingElement || document.documentElement).scrollTop <= 0; }
+  document.addEventListener("touchstart", function (ev) {
+    var t = ev.target;
+    startY = ev.touches.length === 1 && atTop() && !(t.closest && t.closest("input, textarea, select, .tp-pop")) ? ev.touches[0].clientY : null;
+    pull = 0;
+  }, { passive: true });
+  document.addEventListener("touchmove", function (ev) {
+    if (startY === null || refreshing) return;
+    pull = Math.max(0, Math.min(ev.touches[0].clientY - startY, 120));
+    if (pull > 10 && atTop()) { ptr.textContent = pull >= PULL ? "Release to refresh" : "Pull to refresh"; ptr.style.transform = "translate(-50%," + (pull / 2) + "px)"; ptr.classList.add("on"); }
+  }, { passive: true });
+  document.addEventListener("touchend", function () {
+    if (startY === null) return;
+    startY = null;
+    if (pull >= PULL) {
+      ptr.textContent = "Refreshing…";
+      refresh().then(function () { ptr.textContent = "Up to date"; setTimeout(function () { ptr.classList.remove("on"); ptr.style.transform = ""; }, 600); });
+    } else { ptr.classList.remove("on"); ptr.style.transform = ""; }
+    pull = 0;
+  });
+
+  function onSettings(snap) {
+    settingsVersionSeen = snap.exists;
+    settings = cleanSettings(snap.exists ? snap.data() : null);
+    settingsLoaded = true;
+    if (settings.theme) { applyTheme(settings.theme); try { localStorage.setItem(THEME_KEY, settings.theme); } catch (e) {} }
+    if (typeof settings.clock24 === "boolean" && settings.clock24 !== clock24) setClock24(settings.clock24);
+    render();
+    maybeSync();
+    sweepDone();
+  }
 })();
 </script>
 

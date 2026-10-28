@@ -107,6 +107,21 @@ Once set up, you can manage tasks without opening the page:
 | "Send my end-of-day nudge at 9pm" | Moves the end-of-day reminder |
 | "Update Reminder Desk" | Checks for a new version and upgrades, keeping your tasks |
 
+## Add it to your phone's home screen
+
+Open Reminder Desk in one tap instead of finding it inside Claude each time.
+
+**iPhone (Safari)**
+1. Open your Reminder Desk link in Safari. Copy it from the page's share/copy link in Claude, or from your gallery at [claude.ai/code/artifacts](https://claude.ai/code/artifacts).
+2. Sign in to claude.ai if asked. The page needs your sign-in to load and save tasks.
+3. Tap **Share** > **Add to Home Screen** > **Add**.
+
+**Android (Chrome)**
+1. Open the same link in Chrome and sign in.
+2. Tap **⋮** > **Add to Home screen** (or **Install**) > **Add**.
+
+The shortcut opens the page in your browser, not the Claude app, and the icon may be a generic one. Reminders still arrive as Claude app notifications.
+
 ## Good to know
 
 - Scheduled tasks can't run more often than once an hour. If all your tasks share the same minute (say, all on the hour), reminders arrive within a minute or two of the task time; otherwise the check runs on the hour, so a reminder can be up to 59 minutes late. The schedule is updated from the page (or chat) when tasks change; tasks changed any other way keep the previous schedule until the next change.
