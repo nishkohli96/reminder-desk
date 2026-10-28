@@ -94,6 +94,8 @@ button { font: inherit; cursor: pointer; border-radius: 8px; }
 .hint { grid-column: 1 / -1; font-size: 12.5px; color: var(--muted); margin: 0; }
 .past-note { color: var(--warn); }
 .past-note .btn-link { color: var(--accent); font-weight: 600; padding: 0 2px; text-decoration: underline; }
+.ptr { position: fixed; top: 8px; left: 50%; transform: translate(-50%, -60px); z-index: 20; padding: 6px 14px; border-radius: 999px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); font-size: 13px; box-shadow: 0 4px 14px rgba(0,0,0,.12); opacity: 0; pointer-events: none; transition: opacity .15s; }
+.ptr.on { opacity: 1; }
 .form-msg { grid-column: 1 / -1; font-size: 13px; margin: 0; color: var(--danger); }
 
 details.settings { padding: 0; }
@@ -867,26 +869,79 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
     return (user ? user.id() : Promise.resolve(null)).then(function (id) {
       uid = id;
       if (!uid) { statusEl.textContent = "Sign in to Claude to keep your own private task list here."; return; }
-      tasksCol().onSnapshot(function (snap) {
-        tasks = snap.docs.map(function (d) { return { id: d.id, data: d.data() }; });
-        statusEl.hidden = true;
-        tasksLoaded = true;
-        render();
-        maybeSync();
-        sweepDone();
-      }, function () { flagError("Lost the connection to your tasks. Reload the page."); });
-      settingsDoc().onSnapshot(function (snap) {
-        settingsVersionSeen = snap.exists;
-        settings = cleanSettings(snap.exists ? snap.data() : null);
-        settingsLoaded = true;
-        if (settings.theme) { applyTheme(settings.theme); try { localStorage.setItem(THEME_KEY, settings.theme); } catch (e) {} }
-        if (typeof settings.clock24 === "boolean" && settings.clock24 !== clock24) setClock24(settings.clock24);
-        render();
-        maybeSync();
-        sweepDone();
-      }, function () {});
+      subscribe();
     });
   });
+
+  // Live updates: one listener per path. A page left in the background (an installed home-screen app) can come back
+  // with a dead listener, so on return, and on pull-to-refresh, read fresh data and subscribe again.
+  var unsubs = [];
+  function onTasks(snap) {
+    tasks = snap.docs.map(function (d) { return { id: d.id, data: d.data() }; });
+    statusEl.hidden = true;
+    tasksLoaded = true;
+    render();
+    maybeSync();
+    sweepDone();
+  }
+  function subscribe() {
+    unsubs.forEach(function (u) { try { u(); } catch (e) {} });
+    unsubs = [
+      tasksCol().onSnapshot(onTasks, function () { flagError("Lost the connection to your tasks. Pull down to refresh."); }),
+      settingsDoc().onSnapshot(onSettings, function () {})
+    ];
+  }
+  var refreshing = null;
+  function refresh() {
+    if (!db || !uid) return Promise.resolve();
+    if (refreshing) return refreshing;
+    refreshing = Promise.all([tasksCol().get(), settingsDoc().get()]).then(function (r) {
+      onSettings(r[1]); onTasks(r[0]); subscribe();
+    }).catch(function () {}).then(function () { refreshing = null; });
+    return refreshing;
+  }
+  var hiddenAt = 0;
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) hiddenAt = Date.now();
+    else if (Date.now() - hiddenAt > 3000) refresh();
+  });
+  window.addEventListener("pageshow", function (ev) { if (ev.persisted) refresh(); });
+  window.addEventListener("online", refresh);
+
+  // Pull to refresh (installed apps have no browser pull-to-refresh).
+  var ptr = document.createElement("div"); ptr.className = "ptr"; ptr.setAttribute("aria-live", "polite"); document.body.appendChild(ptr);
+  var startY = null, pull = 0, PULL = 70;
+  function atTop() { return (document.scrollingElement || document.documentElement).scrollTop <= 0; }
+  document.addEventListener("touchstart", function (ev) {
+    var t = ev.target;
+    startY = ev.touches.length === 1 && atTop() && !(t.closest && t.closest("input, textarea, select, .tp-pop")) ? ev.touches[0].clientY : null;
+    pull = 0;
+  }, { passive: true });
+  document.addEventListener("touchmove", function (ev) {
+    if (startY === null || refreshing) return;
+    pull = Math.max(0, Math.min(ev.touches[0].clientY - startY, 120));
+    if (pull > 10 && atTop()) { ptr.textContent = pull >= PULL ? "Release to refresh" : "Pull to refresh"; ptr.style.transform = "translate(-50%," + (pull / 2) + "px)"; ptr.classList.add("on"); }
+  }, { passive: true });
+  document.addEventListener("touchend", function () {
+    if (startY === null) return;
+    startY = null;
+    if (pull >= PULL) {
+      ptr.textContent = "Refreshing…";
+      refresh().then(function () { ptr.textContent = "Up to date"; setTimeout(function () { ptr.classList.remove("on"); ptr.style.transform = ""; }, 600); });
+    } else { ptr.classList.remove("on"); ptr.style.transform = ""; }
+    pull = 0;
+  });
+
+  function onSettings(snap) {
+    settingsVersionSeen = snap.exists;
+    settings = cleanSettings(snap.exists ? snap.data() : null);
+    settingsLoaded = true;
+    if (settings.theme) { applyTheme(settings.theme); try { localStorage.setItem(THEME_KEY, settings.theme); } catch (e) {} }
+    if (typeof settings.clock24 === "boolean" && settings.clock24 !== clock24) setClock24(settings.clock24);
+    render();
+    maybeSync();
+    sweepDone();
+  }
 })();
 </script>
 
