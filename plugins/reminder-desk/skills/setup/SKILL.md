@@ -29,7 +29,7 @@ Everything runs on the user's own account. Their tasks live in their private sub
 
 ## Data model (ArtifactData, on the page's url; `me` = the account calling)
 
-- **Settings:** collection `data/users/me`, doc_id `settings`. Fields: `{followupHours: 1-12, morningTime: "HH:MM", nightTime: "HH:MM", tz: IANA zone, morningTaskId: "trig_...", nightTaskId: "trig_...", hourlyTaskId: "trig_...", hourlyCron: the cron last applied to the hourly task, theme: "light"|"dark"|"system", clock24: boolean (default false), appVersion: the plugin version the account was last set up or updated with}`.
+- **Settings:** collection `data/users/me`, doc_id `settings`. Fields: `{followupHours: 1-12, morningTime: "HH:MM", nightTime: "HH:MM", tz: IANA zone, morningTaskId: "trig_...", nightTaskId: "trig_...", hourlyTaskId: "trig_...", hourlyCron: the cron last applied to the hourly task, theme: "light"|"dark"|"system", clock24: boolean (default false), autoDelete: boolean (default false; the page deletes a task a day after it was ticked off), appVersion: the plugin version the account was last set up or updated with}`.
 - **Tasks:** collection `data/users/me/home/tasks`, one doc per task. Fields:
   - `title`
   - `dueDate`: "YYYY-MM-DD"

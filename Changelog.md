@@ -3,6 +3,20 @@
 All notable changes to Reminder Desk are listed here. Versions follow `version` in `plugins/reminder-desk/.claude-plugin/plugin.json`.
 
 
+## [1.0.2](https://github.com/nishkohli96/reminder-desk/releases/tag/v1.0.2)
+
+**Released - 28 October, 2026**
+
+### Added
+- After "Update Reminder Desk", Claude also shows **What's new**: the changes in every version since the one your account was on, taken from this changelog.
+- `scripts/release.sh` removes older zips from `dist/`, so only the current version's zip is left.
+- New setting **Auto Delete Reminders** (off by default). When on, a task is deleted a day after you tick it off, whenever the page is open. Turning it on also clears tasks that were done more than a day ago.
+- Adding a task at a time that has already passed today now shows a note saying when the first reminder will come (with the follow-up, in tonight's end-of-day nudge, or tomorrow), plus a one-tap "Remind me at <next hour> instead".
+
+### Fixed
+- On phones, the time list (hour, minute, AM/PM) no longer runs off the screen and makes the page scroll sideways. It now opens from the right edge of the time field with narrower columns, so all three fit on screen.
+
+
 ## [1.0.1](https://github.com/nishkohli96/reminder-desk/releases/tag/v1.0.1)
 
 **Released - 22 October, 2026**

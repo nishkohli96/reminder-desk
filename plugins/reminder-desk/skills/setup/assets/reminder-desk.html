@@ -92,6 +92,8 @@ button { font: inherit; cursor: pointer; border-radius: 8px; }
 .btn-link:hover { color: var(--ink); }
 .btn-danger { color: var(--danger); }
 .hint { grid-column: 1 / -1; font-size: 12.5px; color: var(--muted); margin: 0; }
+.past-note { color: var(--warn); }
+.past-note .btn-link { color: var(--accent); font-weight: 600; padding: 0 2px; text-decoration: underline; }
 .form-msg { grid-column: 1 / -1; font-size: 13px; margin: 0; color: var(--danger); }
 
 details.settings { padding: 0; }
@@ -157,6 +159,10 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
   li.task { grid-template-columns: auto 1fr; }
   .actions { grid-column: 2; justify-content: flex-start; }
   .confirm { justify-content: flex-start; }
+  /* Time list: open from the field's right edge and narrow the columns so hour, minute and AM/PM fit without sideways scrolling */
+  .tp-pop { left: auto; right: 0; max-width: calc(100vw - 32px); }
+  .tp-col { width: 64px; }
+  .tp-col.tp-ampm { width: 56px; }
 }
 </style>
 
@@ -191,6 +197,7 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
     </div>
     <button class="btn-primary" type="submit" id="addBtn">Add task</button>
     <p class="form-msg" id="formMsg" hidden></p>
+    <p class="hint past-note" id="pastNote" hidden><span id="pastText"></span> <button type="button" class="btn-link" id="pastFix"></button></p>
     <p class="hint" id="editHint" hidden>Editing. Saving resets this task's reminders. <button type="button" class="btn-link" id="cancelEdit">Cancel edit</button></p>
   </form>
 
@@ -217,6 +224,11 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
         <input type="checkbox" id="p-clock24">
         <span>24-hour format</span>
         <span class="hint-inline">Off shows 2:00 PM; on shows 14:00. Applies right away.</span>
+      </label>
+      <label class="clock-row" for="p-autodel">
+        <input type="checkbox" id="p-autodel">
+        <span>Auto Delete Reminders</span>
+        <span class="hint-inline">Deletes a task a day after you tick it off, including tasks already done for over a day. Applies right away.</span>
       </label>
       <button class="btn-primary" type="submit" id="prefsBtn">Save settings</button>
       <p class="prefs-msg" id="prefsMsg">Start of day: one push listing today's and carried-over tasks. Follow-up: 1 to 12 hours after each task's time. End of day: one push listing every task still open.</p>
@@ -353,6 +365,7 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
   }
 
   var form = $("addForm"), titleIn = $("t-title"), dateIn = $("t-date"), timeIn = timePicker($("t-time"));
+  var pastNote = $("pastNote"), pastText = $("pastText"), pastFix = $("pastFix");
   var addBtn = $("addBtn"), formMsg = $("formMsg"), editHint = $("editHint"), statusEl = $("status"), sectionsEl = $("sections");
   var prefsForm = $("prefsForm"), hoursIn = $("p-hours"), nightIn = timePicker($("p-night")), morningIn = timePicker($("p-morning")), prefsBtn = $("prefsBtn"), prefsMsg = $("prefsMsg");
 
@@ -410,8 +423,29 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
     var p = istParts(Date.now() + HOUR);
     dateIn.value = p.date;
     timeIn.value = p.time.slice(0, 2) + ":00";
+    checkPast();
   }
-  function tickNow() { $("now").textContent = tzAbbr(TZ) + " " + fmtDate(Date.now()) + " · " + fmtTime(Date.now()); }
+  // A time that has already passed today is allowed; say when the first reminder will actually come.
+  function nextHour() { var p = istParts(Date.now() + HOUR); return { date: p.date, time: p.time.slice(0, 2) + ":00" }; }
+  function checkPast() {
+    if (!settings) return;
+    var now = Date.now(), t = timeIn.value, today = istParts(now).date;
+    var ms = t && dateIn.value === today ? toMs(today, t) : NaN;
+    if (!(ms < now)) { pastNote.hidden = true; return; }
+    var at = fmtTime(ms), f = ms + settings.followupHours * HOUR;
+    var ntz = settings.tz || TZ, night = toMs(partsIn(now, ntz).date, settings.nightTime, ntz);
+    pastText.textContent = at + " has already passed today. " + (f > now
+      ? "Your first reminder comes with the " + fmtTime(f) + " follow-up, then daily at " + at + "."
+      : night > now ? "You'll get it in tonight's " + fmtTime(night, ntz) + " nudge, then daily at " + at + " from tomorrow."
+      : "Reminders start tomorrow at " + at + ".");
+    var n = nextHour();
+    pastFix.textContent = "Remind me at " + fmtTime(toMs(n.date, n.time)) + " instead";
+    pastNote.hidden = false;
+  }
+  pastFix.addEventListener("click", function () { var n = nextHour(); dateIn.value = n.date; timeIn.value = n.time; checkPast(); });
+  dateIn.addEventListener("input", checkPast); dateIn.addEventListener("change", checkPast);
+  ["click", "input", "focusout", "keyup"].forEach(function (e) { timeIn.el.addEventListener(e, function () { setTimeout(checkPast, 0); }); });
+  function tickNow() { $("now").textContent = tzAbbr(TZ) + " " + fmtDate(Date.now()) + " · " + fmtTime(Date.now()); checkPast(); }
   Array.prototype.forEach.call(document.querySelectorAll(".tz-abbr"), function (n) { n.textContent = tzAbbr(TZ); });
   $("tzName").textContent = TZ.replace(/_/g, " ");
 
@@ -438,6 +472,34 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
       : ref.set({ followupHours: settings.followupHours, morningTime: settings.morningTime, nightTime: settings.nightTime, clock24: on }))
       .catch(function () {});
   });
+
+  // ---- Auto Delete Reminders: remove a task a day after it was ticked off. Synced in your settings. ----
+  // Runs whenever this page is open (on load, on every change, and once a minute).
+  var DAY = 24 * HOUR;
+  var autoDelBox = $("p-autodel");
+  var autoDeleting = {};
+  autoDelBox.addEventListener("change", function () {
+    var on = autoDelBox.checked;
+    if (settings.autoDelete === on) return;
+    settings.autoDelete = on;
+    if (!db || !uid) return;
+    var ref = settingsDoc();
+    (settingsVersionSeen ? ref.update({ autoDelete: on })
+      : ref.set({ followupHours: settings.followupHours, morningTime: settings.morningTime, nightTime: settings.nightTime, autoDelete: on }))
+      .then(sweepDone)
+      .catch(function () {});
+  });
+  function sweepDone() {
+    if (!db || !uid || !settingsLoaded || !tasksLoaded || !settings.autoDelete) return;
+    var cutoff = Date.now() - DAY;
+    tasks.forEach(function (t) {
+      var d = t.data;
+      if (!d.done || typeof d.doneAt !== "number" || d.doneAt > cutoff || autoDeleting[t.id]) return;
+      autoDeleting[t.id] = true;
+      tasksCol().doc(t.id).delete().catch(function () { delete autoDeleting[t.id]; });
+    });
+  }
+  setInterval(sweepDone, 60000);
 
   // ---- theme (Light / Dark / System). Synced in your settings; cached locally to avoid a flash. ----
   var THEME_KEY = "reminder-desk-theme";
@@ -480,6 +542,7 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
       if (typeof raw.hourlyCron === "string") s.hourlyCron = raw.hourlyCron;
       if (raw.theme === "light" || raw.theme === "dark" || raw.theme === "system") s.theme = raw.theme;
       if (typeof raw.clock24 === "boolean") s.clock24 = raw.clock24;
+      if (typeof raw.autoDelete === "boolean") s.autoDelete = raw.autoDelete;
     }
     return s;
   }
@@ -488,6 +551,7 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
     if (!morningIn.el.contains(document.activeElement)) morningIn.value = settings.morningTime;
     if (document.activeElement !== hoursIn) hoursIn.value = String(settings.followupHours);
     if (!nightIn.el.contains(document.activeElement)) nightIn.value = settings.nightTime;
+    autoDelBox.checked = !!settings.autoDelete;
   }
 
   // ---- render ----
@@ -621,7 +685,7 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
     editingId = t.id;
     var p = istParts(t.data.dueMs);
     titleIn.value = t.data.title; dateIn.value = p.date; timeIn.value = p.time;
-    addBtn.textContent = "Save changes"; editHint.hidden = false; showMsg("");
+    addBtn.textContent = "Save changes"; editHint.hidden = false; showMsg(""); checkPast();
     titleIn.focus();
   }
   function endEdit() {
@@ -710,6 +774,7 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
     if (settings.morningTaskId) body.morningTaskId = settings.morningTaskId;
     if (settings.theme) body.theme = settings.theme;
     if (typeof settings.clock24 === "boolean") body.clock24 = settings.clock24;
+    if (typeof settings.autoDelete === "boolean") body.autoDelete = settings.autoDelete;
     if (settings.hourlyTaskId) body.hourlyTaskId = settings.hourlyTaskId;
     if (settings.hourlyCron) body.hourlyCron = settings.hourlyCron;
     if (h !== settings.followupHours || zoneChanged) syncWanted = true;
@@ -808,6 +873,7 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
         tasksLoaded = true;
         render();
         maybeSync();
+        sweepDone();
       }, function () { flagError("Lost the connection to your tasks. Reload the page."); });
       settingsDoc().onSnapshot(function (snap) {
         settingsVersionSeen = snap.exists;
@@ -817,6 +883,7 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
         if (typeof settings.clock24 === "boolean" && settings.clock24 !== clock24) setClock24(settings.clock24);
         render();
         maybeSync();
+        sweepDone();
       }, function () {});
     });
   });

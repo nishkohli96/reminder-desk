@@ -1,7 +1,7 @@
 {
   "name": "reminder-desk",
   "description": "Private Reminder Desk page plus start-of-day, task-time, follow-up and end-of-day push reminders",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "author": {
     "name": "Nishant Kohli",
     "url": "https://github.com/nishkohli96"

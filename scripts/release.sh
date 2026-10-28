@@ -44,8 +44,8 @@ else
   echo "• claude CLI not found, skipping validation"
 fi
 # Build: zip the plugin folder itself, so the zip opens to reminder-desk/
-rm -f "$ZIP"
 mkdir -p "$DIST"
+rm -f "$DIST"/*.zip   # keep only this version's zip
 (
   cd "$ROOT/plugins"
   zip -rq "$ZIP" reminder-desk \
