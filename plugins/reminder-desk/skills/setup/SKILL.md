@@ -73,6 +73,9 @@ Run this when the user asks to set it up. Check first whether they already have 
     - which approval setting each of the three scheduled tasks got
     - that changing reminder times on the page asks once to allow Claude Code Remote
     - that reminders fire at each task's time and its follow-up, and drop off the schedule once the task is ticked off
+    - in one line: "To find this chat again, rename it to Reminder Desk and star it from the chat's menu." Claude can't rename or pin chats itself.
+
+7. **Offer to pin the page** (only when this setup published a new page). Ask once, with AskUserQuestion if available: "Pin Reminder Desk to your sidebar so it's one tap away?" On yes, call Artifact `action: "pin"` with the page URL. On no, or no answer, skip it and don't ask again. Never pin without a yes, and never unpin.
 
 ## Keeping the hourly schedule trimmed
 

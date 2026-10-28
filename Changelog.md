@@ -13,10 +13,13 @@ All notable changes to Reminder Desk are listed here. Versions follow `version` 
 - New setting **Auto Delete Reminders** (off by default). When on, a task is deleted a day after you tick it off, whenever the page is open. Turning it on also clears tasks that were done more than a day ago.
 - Adding a task at a time that has already passed today now shows a note saying when the first reminder will come (with the follow-up, in tonight's end-of-day nudge, or tomorrow), plus a one-tap "Remind me at <next hour> instead".
 - README guide to add Reminder Desk to your phone's home screen (iPhone Safari and Android Chrome), so you can open it in one tap.
+- **Quick add**: type or dictate one sentence, like "Book flight tickets to Goa on 30 Oct at 4pm", and the page fills in the title, date and time for you to check before adding. Understands today/tomorrow, weekdays ("next Monday"), "30th Oct", "Nov 5", "15/11", "the 5th", "4pm", "16:30", "noon" and "in 2 hours", and runs entirely in the page.
+- Setup now offers to pin the Reminder Desk page to your Claude sidebar (only with your yes), and its final message tells you how to rename and star the setup chat.
 - Pull to refresh on the Reminder Desk page, for home-screen installs that have no browser refresh.
 
 ### Fixed
 - On phones, the time list (hour, minute, AM/PM) no longer runs off the screen and makes the page scroll sideways. It now opens from the right edge of the time field with narrower columns, so all three fit on screen.
+- On wider screens the Task field in the add form now gets the most room, instead of the Time field.
 - The page now reloads your tasks and settings when you come back to it (switching apps, unlocking the phone, reconnecting). Before, a home-screen install could keep showing a task you'd deleted elsewhere until you closed the app.
 
 
