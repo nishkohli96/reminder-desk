@@ -4,7 +4,7 @@
 #   bash scripts/release.sh            build dist/reminder-desk-plugin-v<version>.zip
 #   bash scripts/release.sh --publish  build, tag v<version>, push the tag, create the GitHub Release
 #
-# The zip holds only the plugin: plugins/reminder-desk/ (.claude-plugin, hooks, scripts, skills).
+# The zip holds only the plugin: plugins/reminder-desk/ (.claude-plugin, skills).
 # Repo files such as README, LICENSE, .gitignore and dotfiles are left out.
 set -euo pipefail
 
@@ -45,13 +45,19 @@ else
 fi
 # Build: zip the plugin folder itself, so the zip opens to reminder-desk/
 mkdir -p "$DIST"
-rm -f "$DIST"/*.zip   # keep only this version's zip
+# Build in a private temp folder (unique per run, so parallel runs can't touch each other's file);
+# the old zips are removed only once this build succeeds.
+BUILD_DIR="$(mktemp -d "$DIST/.building.XXXXXX")"
+trap 'rm -rf "$BUILD_DIR"' EXIT
+NEW="$BUILD_DIR/${ZIP##*/}"
 (
   cd "$ROOT/plugins"
-  zip -rq "$ZIP" reminder-desk \
+  zip -rq "$NEW" reminder-desk \
     -x '*/.DS_Store' '*/.git*' '*/node_modules/*' '*.zip' \
       'reminder-desk/README*' 'reminder-desk/LICENSE*'
-)
+) || { die "zip failed; existing zips in ${DIST#$ROOT/}/ were left as they were"; }
+rm -f "$DIST"/*.zip   # keep only this version's zip
+mv "$NEW" "$ZIP"
 echo "✔ Built ${ZIP#$ROOT/}"
 unzip -l "$ZIP" | awk 'NR>3 && $4 != "" && $4 !~ /\/$/ {print "   " $4}' | sed '$d'
 

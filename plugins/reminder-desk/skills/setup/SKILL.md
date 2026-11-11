@@ -14,7 +14,7 @@ Gives the user a private task page and three scheduled tasks that push reminders
 - **End-of-day nudge:** at `nightTime` (default 22:30) one push lists every task still open.
 - The page also has a Light / Dark / System theme switch (stored as `theme` in settings) and a 24-hour format toggle (stored as `clock24`; default off = 12-hour with AM/PM). Pushes follow the same time format.
 
-**Automatic first-run setup.** When installed as a plugin, a SessionStart hook (`hooks/hooks.json` → `scripts/first-run.sh`) tells Claude to run the setup flow below in the first session after install, once per machine. Hooks run in Claude Code and Cowork; chat on claude.ai ignores them, so there the user starts setup by saying "Set up my to-do reminders".
+**Starting setup.** Run the setup flow only when the user asks for it ("Set up my to-do reminders" or `/reminder-desk:setup`). Never start it on your own, for example at the start of a new chat.
 
 **Where setup works.** Setup needs the Artifact and ArtifactData tools and the scheduled-task tools (create_trigger). Some may be deferred: load them with ToolSearch first, and treat them as unavailable only if ToolSearch can't load them. If they aren't available in this session (for example the Claude Code terminal), don't attempt setup and don't guess whether a Reminder Desk page or scheduled tasks already exist, because this session can't see them. Tell the user in one line to open the Claude app and say "Set up my to-do reminders"; setup there checks for an existing page and reminders first.
 
@@ -51,6 +51,7 @@ Run this when the user asks to set it up. Check first whether they already have 
 2. **Publish the page.**
     - Copy `assets/reminder-desk.html` into the working directory unchanged.
     - Publish it with the Artifact tool:
+      - `title: "Reminder Desk"` (without it the chat card can show "Untitled Artifact")
       - `icon: "checklist"`
       - `description: "Private daily to-do reminders with follow-ups and an end-of-day nudge."`
       - `capabilities: {"db": {"rules": [{"path": "", "read": "owner", "write": "owner"}, {"path": "data/users/{self}", "read": "view", "write": "interact"}]}, "user": {}, "mcp": {"servers": [{"server": "Claude Code Remote", "tools": ["update_trigger"]}]}}`
