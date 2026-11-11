@@ -4,9 +4,15 @@ All notable changes to Reminder Desk are listed here. Versions follow `version` 
 
 ## [1.1.1](https://github.com/nishkohli96/reminder-desk/releases/tag/v1.1.1)
 
+**Released - 12 November, 2026**
+
 ### 🐛 Fixed
 - Claude no longer starts Reminder Desk setup in every new chat. The first-run hook relied on a marker file that isn't kept between Claude app sessions, so it fired each time. The hook is removed; setup now starts only when you say "Set up my to-do reminders" or run `/reminder-desk:setup`.
 - The Reminder Desk page could show as "Untitled Artifact" in chat. Setup and "Update Reminder Desk" now publish it with the title "Reminder Desk".
+- Quick add could put a title longer than 140 characters into the Task field, and saving didn't check the length. Quick add now trims it to 140, and saving refuses longer titles.
+- Quick add read "the 30th" or "the 31st" as no date when next month is too short (e.g. "the 30th" on 31 January). It now picks the next month that has that day, e.g. 30 March.
+- Pull to refresh said "Up to date" even when loading your tasks failed. It now says "Couldn't refresh. Check your connection."
+- `scripts/release.sh` deleted older zips in `dist/` before building, so a failed build left none. It now builds first and removes the old zips only after the new one is ready.
 - The version label next to the page title showed `v1.0.1` in 1.1.0. It now matches the plugin version.
 
 

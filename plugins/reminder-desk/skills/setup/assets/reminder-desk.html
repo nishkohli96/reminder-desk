@@ -514,7 +514,9 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
     }) ||
     cut(/\s(?:on\s+)?(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)(?=[\s,.!?]|$)/i, function (m) {
       var d = +m[1], t = today.split("-"), y = +t[0], mo = +t[1];
-      if (ymd(y, mo, d) < today || !validDay(y, mo, d)) { mo++; if (mo > 12) { mo = 1; y++; } }
+      if (d < 1 || d > 31) return false;
+      // The next month that has this day, from this month on: "the 30th" on 31 Jan is 30 Mar, "the 31st" skips 30-day months.
+      for (var k = 0; k < 12 && !(validDay(y, mo, d) && ymd(y, mo, d) >= today); k++) { mo++; if (mo > 12) { mo = 1; y++; } }
       if (!validDay(y, mo, d)) return false; date = ymd(y, mo, d);
     });
     if (time && !date) date = toMs(today, time) > Date.now() ? today : addDays(today, 1); // "at 7am" = the next 7am
@@ -543,7 +545,7 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
   }
   function quickFill() {
     var r = quickPreview(); if (!r) return;
-    if (r.title) titleIn.value = r.title;
+    if (r.title) titleIn.value = r.title.slice(0, titleIn.maxLength); // same 140-character limit as typing
     if (r.date) dateIn.value = r.date;
     if (r.time) timeIn.value = r.time;
     qText.value = ""; quickPreview(); checkPast(); showMsg("");
@@ -806,6 +808,7 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
     if (!db || !uid) { showMsg("Sign in to Claude to save tasks here."); return; }
     var title = titleIn.value.trim();
     if (!title) { showMsg("Give the task a title."); titleIn.focus(); return; }
+    if (title.length > titleIn.maxLength) { showMsg("Keep the title under " + titleIn.maxLength + " characters."); titleIn.focus(); return; }
     var time = timeIn.value;
     if (!dateIn.value || !time) { showMsg("Pick a date and time."); return; }
     var dueMs = toMs(dateIn.value, time);
@@ -1002,7 +1005,8 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
     if (refreshing) return refreshing;
     refreshing = Promise.all([tasksCol().get(), settingsDoc().get()]).then(function (r) {
       onSettings(r[1]); onTasks(r[0]); subscribe();
-    }).catch(function () {}).then(function () { refreshing = null; });
+      return true;
+    }).catch(function () { return false; }).then(function (ok) { refreshing = null; return ok; });
     return refreshing;
   }
   var hiddenAt = 0;
@@ -1032,7 +1036,7 @@ li.done .title { text-decoration: line-through; color: var(--muted); font-weight
     startY = null;
     if (pull >= PULL) {
       ptr.textContent = "Refreshing…";
-      refresh().then(function () { ptr.textContent = "Up to date"; setTimeout(function () { ptr.classList.remove("on"); ptr.style.transform = ""; }, 600); });
+      refresh().then(function (ok) { ptr.textContent = ok === false ? "Couldn't refresh. Check your connection." : "Up to date"; setTimeout(function () { ptr.classList.remove("on"); ptr.style.transform = ""; }, ok === false ? 2000 : 600); });
     } else { ptr.classList.remove("on"); ptr.style.transform = ""; }
     pull = 0;
   });

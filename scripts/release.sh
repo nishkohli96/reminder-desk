@@ -45,13 +45,16 @@ else
 fi
 # Build: zip the plugin folder itself, so the zip opens to reminder-desk/
 mkdir -p "$DIST"
-rm -f "$DIST"/*.zip   # keep only this version's zip
+NEW="$DIST/.building-${ZIP##*/}"   # build beside the old zips; they're removed only once this succeeds
+rm -f "$NEW"
 (
   cd "$ROOT/plugins"
-  zip -rq "$ZIP" reminder-desk \
+  zip -rq "$NEW" reminder-desk \
     -x '*/.DS_Store' '*/.git*' '*/node_modules/*' '*.zip' \
       'reminder-desk/README*' 'reminder-desk/LICENSE*'
-)
+) || { rm -f "$NEW"; die "zip failed; existing zips in ${DIST#$ROOT/}/ were left as they were"; }
+rm -f "$DIST"/*.zip   # keep only this version's zip
+mv "$NEW" "$ZIP"
 echo "✔ Built ${ZIP#$ROOT/}"
 unzip -l "$ZIP" | awk 'NR>3 && $4 != "" && $4 !~ /\/$/ {print "   " $4}' | sed '$d'
 
