@@ -74,13 +74,11 @@ Saving a new start-of-day or end-of-day time moves that scheduled task. The page
 
 **Claude app, from a zip:** download `reminder-desk-plugin-v<version>.zip` from the [latest release](https://github.com/nishkohli96/reminder-desk/releases/latest), then in Claude go to Customize > Plugins > Add > **Upload plugin** and choose the zip. Don't unzip it first.
 
-After a plugin install, setup starts on its own the next time you open a session in Claude Code or Cowork.
-
-In claude.ai chat, plugin hooks don't run, so start it yourself: open a new chat and say:
+After installing, open a new chat and say:
 
 > Set up my to-do reminders
 
-or run `/reminder-desk:setup` in Claude Code or Cowork.
+or run `/reminder-desk:setup`. Setup only starts when you ask for it.
 
 Claude publishes your page, creates the three scheduled tasks in your timezone, links them, and tells you when it's ready. Running it again won't create duplicates; it reuses your existing page and reminders.
 
@@ -197,10 +195,6 @@ reminder-desk/                          # GitHub repo = plugin marketplace
 │   └── reminder-desk/                  # the plugin
 │       ├── .claude-plugin/
 │       │   └── plugin.json
-│       ├── hooks/
-│       │   └── hooks.json              # starts setup in the first session after install
-│       ├── scripts/
-│       │   └── first-run.sh
 │       └── skills/
 │           ├── update/
 │           │   └── SKILL.md            # /reminder-desk:update

@@ -2,6 +2,13 @@
 
 All notable changes to Reminder Desk are listed here. Versions follow `version` in `plugins/reminder-desk/.claude-plugin/plugin.json`.
 
+## [1.1.1](https://github.com/nishkohli96/reminder-desk/releases/tag/v1.1.1)
+
+### 🐛 Fixed
+- Claude no longer starts Reminder Desk setup in every new chat. The first-run hook relied on a marker file that isn't kept between Claude app sessions, so it fired each time. The hook is removed; setup now starts only when you say "Set up my to-do reminders" or run `/reminder-desk:setup`.
+- The Reminder Desk page could show as "Untitled Artifact" in chat. Setup and "Update Reminder Desk" now publish it with the title "Reminder Desk".
+- The version label next to the page title showed `v1.0.1` in 1.1.0. It now matches the plugin version.
+
 
 ## [1.1.0](https://github.com/nishkohli96/reminder-desk/releases/tag/v1.1.0)
 

@@ -4,7 +4,7 @@
 #   bash scripts/release.sh            build dist/reminder-desk-plugin-v<version>.zip
 #   bash scripts/release.sh --publish  build, tag v<version>, push the tag, create the GitHub Release
 #
-# The zip holds only the plugin: plugins/reminder-desk/ (.claude-plugin, hooks, scripts, skills).
+# The zip holds only the plugin: plugins/reminder-desk/ (.claude-plugin, skills).
 # Repo files such as README, LICENSE, .gitignore and dotfiles are left out.
 set -euo pipefail
 

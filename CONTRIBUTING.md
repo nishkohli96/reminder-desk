@@ -20,8 +20,6 @@ Please leave out your task titles, artifact links and scheduled task IDs.
 plugins/reminder-desk/                    # the plugin; only this folder ships in releases
 ├── .claude-plugin/plugin.json            # name, version, author
 ├── .claude-plugin/icon.png               # 512×512 listing icon, made from assets/logo.svg
-├── hooks/hooks.json                      # first-run SessionStart hook
-├── scripts/first-run.sh
 └── skills/
     ├── setup/                            # /reminder-desk:setup, the main skill
     │   ├── SKILL.md
